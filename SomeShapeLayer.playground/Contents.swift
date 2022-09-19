@@ -165,9 +165,12 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
             self.setNeedsDisplay()
         }
     }
-    
     var flipCompletionHandler: ((FlippableView) -> Void)?
+    
     private let margin: Int = 10
+    private var anchorPoint: CGPoint = CGPoint(x: 0, y: 0)
+    private var startTouchPoint: CGPoint!
+    
     lazy var frontSideView: UIView = self.getFrontSideView()
     lazy var backSideView: UIView = self.getBackSideView()
     
@@ -203,6 +206,10 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
     
     
     func flip() {
+        let fromView = isFlipped ? frontSideView : backSideView
+        let toView = isFlipped ? backSideView : frontSideView
+        UIView.transition(from: fromView, to: toView, duration: 0.5, options: [.transitionFlipFromTop], completion: nil)
+        isFlipped = !isFlipped
     }
     
     private func setupBorders() {
@@ -211,6 +218,8 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
         self.layer.borderWidth = 2
         self.layer.borderColor = UIColor.black.cgColor
     }
+    
+    
     
     override func draw(_ rect: CGRect) {
         backSideView.removeFromSuperview()
@@ -223,6 +232,28 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
             self.addSubview(frontSideView)
             self.addSubview(backSideView)
         }
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        anchorPoint.x = touches.first!.location(in: window).x - frame.minX
+        anchorPoint.y = touches.first!.location(in: window).y - frame.minY
+        startTouchPoint = frame.origin
+    }
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        self.frame.origin.x = touches.first!.location(in: window).x - anchorPoint.x
+        self.frame.origin.y = touches.first!.location(in: window).y - anchorPoint.y
+    }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+       /* UIView.animate(withDuration: 0.5) {
+            self.frame.origin = self.startTouchPoint
+            
+            if self.transform.isIdentity {
+                self.transform = CGAffineTransform(rotationAngle: .pi)
+            } else {
+                self.transform = .identity
+            }
+        }*/
+        flip()
     }
     
     init(frame: CGRect, color: UIColor) {
@@ -252,4 +283,11 @@ protocol FlippableView: UIView {
     func flip()
 }
 
-
+extension UIResponder {
+    func responderChain() -> String {
+        guard let next = next else {
+            return String(describing: Self.self)
+        }
+        return String(describing: Self.self) + " -> " + next.responderChain()
+    }
+}
