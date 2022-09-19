@@ -17,9 +17,11 @@ class MyViewController : UIViewController {
         //Рубашка с линиями
         //view.layer.addSublayer(BlackSideLine(size: CGSize(width: 300, height: 300), fillColor: UIColor.gray.cgColor))
         let firstCardView = CardView<CirlceShape>(frame: CGRect(x: 0, y: 0, width: 120, height: 150), color: .red)
+        firstCardView.flipCompletionHandler = { card in card.superview?.bringSubviewToFront(card)}
         self.view.addSubview(firstCardView)
         
         let secondCardView = CardView<CirlceShape>(frame: CGRect(x: 200, y: 0, width: 120, height: 150), color: .red)
+        secondCardView.flipCompletionHandler = { card in card.superview?.bringSubviewToFront(card)}
         self.view.addSubview(secondCardView)
         secondCardView.isFlipped = true
     }
@@ -183,6 +185,9 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
         let shapeLayer = ShapeType(size: shapeView.frame.size, fillColor: color.cgColor)
         shapeView.layer.addSublayer(shapeLayer)
         
+        view.layer.masksToBounds = true
+        view.layer.cornerRadius = CGFloat(cornerRadius)
+        
         return view
     }
     
@@ -201,6 +206,10 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
         default:
             break
         }
+        
+        view.layer.masksToBounds = true
+        view.layer.cornerRadius = CGFloat(cornerRadius)
+        
         return view
     }
     
@@ -208,8 +217,8 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
     func flip() {
         let fromView = isFlipped ? frontSideView : backSideView
         let toView = isFlipped ? backSideView : frontSideView
-        UIView.transition(from: fromView, to: toView, duration: 0.5, options: [.transitionFlipFromTop], completion: nil)
-        isFlipped = !isFlipped
+        UIView.transition(from: fromView, to: toView, duration: 0.5, options: [.transitionFlipFromTop], completion: {_ in self.flipCompletionHandler?(self)})
+        isFlipped.toggle()
     }
     
     private func setupBorders() {
@@ -253,7 +262,9 @@ class CardView<ShapeType: ShapeLayerProtocol>: UIView, FlippableView {
                 self.transform = .identity
             }
         }*/
-        flip()
+        if self.frame.origin == startTouchPoint {
+            flip()
+        }
     }
     
     init(frame: CGRect, color: UIColor) {
